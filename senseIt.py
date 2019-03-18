@@ -29,14 +29,13 @@ def writeToJson(jsonData, filename):
         sense.show_letter('W')
         with open(filename, 'w') as outfile:
             json.dump(jsonData, outfile)
-        
-        producer.send('sensehat',json.dumps(jsonData))
 	
     except Exception as error:
         print("Exception Thrown\n", repr(error))
 
 def sampleEnvironment(sensor, samples, decimalPoints, delaySeconds):
     sumTemp = 0
+    
     sumHumd = 0
     sumPres = 0
     reverse=bool(getrandbits(1))
@@ -65,7 +64,7 @@ def sampleAverages(sensor):
     # Add to the readings
 
     return({
-        'datetime': datetime.now(),
+        'datetime': datetime.now().isoformat(),
         'temperature': sample["temperature"],
         'humidity': sample["humidity"],
         'pressure': sample["pressure"]})
@@ -74,7 +73,7 @@ def sampleAverages(sensor):
 ######################################################################
 
 
-outputFileFormat = "shed_%Y%m%d%H%M"
+# outputFileFormat = "shed_%Y%m%d%H%M"
 
 # Connect to the senseHat
 
@@ -94,31 +93,31 @@ try:
 
     while not anyJoystickEvents:
 
-        outputFile = datetime.now().strftime(outputFileFormat) + ".json"
-        oldOutputFile = outputFile
-        data = {}
-        data["readings"] = []
+        #outputFile = datetime.now().strftime(outputFileFormat) + ".json"
+        #oldOutputFile = outputFile
+        #data = {}
+        #data["readings"] = []
 
-        while (outputFile == oldOutputFile) and (not anyJoystickEvents):
+        # while (outputFile == oldOutputFile) and (not anyJoystickEvents):
             averageReadings = sampleAverages(sense)
+            producer.send('sensehat',json.dumps(averageReadings))
 
             # Given the readings, what is the correct name for the output file?
+            # Because I cast the datetime above to make sure the JSON serializes, this bit doesn't work...
+            # outputFile = averageReadings["datetime"].strftime(outputFileFormat) + ".json"
 
-            outputFile = averageReadings["datetime"].strftime(outputFileFormat) + ".json"
-            averageReadings["datetime"]=averageReadings["datetime"].isoformat()
+            #if outputFile != oldOutputFile:
+                # print ("Writing to new file...", outputFile)
+                # writeToJson(data, outputFile)
+                #oldOutputFile = outputFile
+                #data["readings"] = []
 
-            if outputFile != oldOutputFile:
-                print ("Writing to new file...", outputFile)
-                writeToJson(data, outputFile)
-                oldOutputFile = outputFile
-                data["readings"] = []
-
-            data["readings"].append(averageReadings)
+            #data["readings"].append(averageReadings)
 
             anyJoystickEvents = (len(sense.stick.get_events()) != 0)
 
-    writeToJson(data, outputFile)
-    producer.flush();
+    #writeToJson(data, outputFile)
+    producer.flush()
 
 except Exception as error:
     print("Exception Thrown\n", repr(error))
@@ -126,6 +125,6 @@ except Exception as error:
 # Tidy up
 
 sense.clear(0,0,0)
-produce.close();
+producer.close();
 
 print("Finished")
