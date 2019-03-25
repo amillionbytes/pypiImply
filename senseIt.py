@@ -4,6 +4,7 @@ from random import randint
 from datetime import datetime
 from time import sleep
 from kafka import KafkaProducer
+import subprocess
 import json
 
 def pixelProgress(complete, total, fill, empty, reverse):
@@ -43,6 +44,17 @@ def sampleEnvironment(sensor, samples, decimalPoints, delaySeconds):
     emptyColor = [randint(0,255),randint(0,255),randint(0,255)]
 
     for t in range(samples):
+        sensedTemp = sensor.get_temperature()
+        
+        cpu_temp = subprocess.check_output("vcgencmd measure_temp", shell=True)
+        array = cpu_temp.split("=")
+        array2 = array[1].split("'")
+        
+        cpu_tempc = float(array2[0])
+        cpu_tempc = float("{0:.2f}".format(cpu_tempc))
+
+        temp_calibrated_c = sensedTemp - ((cpu_tempc - sensedTemp)/5.466)
+        
         sumTemp += sensor.get_temperature()
         sumHumd += sensor.get_humidity()
         sumPres += sensor.get_pressure()
@@ -82,7 +94,7 @@ sense = SenseHat()
 # Connect to Kafka
 
 print ('Connecting to Kafka.')
-producer = KafkaProducer(bootstrap_servers='brenda.local:9095')
+producer = KafkaProducer(bootstrap_servers='brenda.local:9092')
 print ('Done.')
 
 # Collect some data until the joystick is activated
