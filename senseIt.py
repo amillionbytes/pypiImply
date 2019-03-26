@@ -6,7 +6,7 @@ from kafka import KafkaProducer
 import subprocess
 import json
 import socket
-import configparser
+from backports import configparser
 
 
 def pixelProgress(complete, total, fill, empty, reverse):
